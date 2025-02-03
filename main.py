@@ -3,29 +3,31 @@ from game import Game
 from menu import menu  # Import the menu function
 from config import WIDTH, HEIGHT, FPS
 
-# Initialize Pygame
-pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Fruit Slicing Game")
-
 def main():
     """Main function to display the menu and start the game."""
-    choice = menu()  # Show the menu before starting the game
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Fruit Slicing Game")
 
-    if choice == "start":  # If the player chooses "Start Game"
-        game = Game()
-        clock = pygame.time.Clock()
+    while True:  # Loop to keep the game running until the player exits
+        choice = menu()  # Show the menu before starting the game
 
-        while game.running:
-            game.handle_event()
-            game.update()
+        if choice == "start":  # If the player chooses "Start Game"
+            game = Game()  # Create a new instance of the game
+            clock = pygame.time.Clock()
 
-            screen.fill((0, 0, 0))  # Black background
-            game.draw(screen)
-            pygame.display.flip()
-            clock.tick(FPS)
+            while game.running:
+                game.handle_event()
+                game.update()
 
-    pygame.quit()
+                screen.fill((0, 0, 0))  # Black background
+                game.draw(screen)
+                pygame.display.flip()
+                clock.tick(FPS)
+
+        elif choice == "exit":  # If the player chooses "Exit"
+            pygame.quit()
+            return  # Exit the game completely
 
 if __name__ == "__main__":
     main()  # Run the main function
