@@ -9,7 +9,8 @@ FRUIT_LETTERS = {
     "apple.png": "L",
     "orange.png": "O",
     "pineapple.png": "P",
-    "watermelon.png": "W"
+    "watermelon.png": "W",
+    "bomb.png": "B"
 }
 
 # Dictionnaire des fruits coupés correspondants
@@ -17,7 +18,8 @@ FRUIT_CUT_IMAGES = {
     "apple.png": "halfapple.png",
     "orange.png": "halforange.png",
     "pineapple.png": "halfpineappl.png",
-    "watermelon.png": "halfwatermelon.png"  # ✅ Correction du nom
+    "watermelon.png": "halfwatermelon.png",  # ✅ Correction du nom
+    "bomb.png": None
 }
 
 # Classe pour gérer les fruits et les glaçons
@@ -27,7 +29,8 @@ class Fruit:
         self.is_ice = is_ice  
         self.image_name = image  # ✅ Sauvegarde du nom original du fruit
         self.image_path = os.path.join("assets", "fruits", "fruit_entier", image) if not is_ice else os.path.join("assets", "ice", image)
-        self.half_image_path = os.path.join("assets", "fruits", "fruit_coupe", FRUIT_CUT_IMAGES.get(image, "")) if not is_ice else None
+        half_image = FRUIT_CUT_IMAGES.get(image)
+        self.half_image_path = os.path.join("assets", "fruits", "fruit_coupe", half_image) if half_image else None
 
         try:
             self.image = pygame.image.load(self.image_path)
@@ -97,30 +100,46 @@ class Game:
             self.background = pygame.Surface((WIDTH, HEIGHT))
             self.background.fill((0, 0, 0))  
 
-        self.fruit_images = ["apple.png", "orange.png", "pineapple.png", "watermelon.png"]
+        self.fruit_images = ["apple.png", "orange.png", "pineapple.png", "watermelon.png", "bomb.png"]
         self.ice_image = "ice-.png"  
 
     def spawn_fruit(self):
-        """Génère un fruit ou un glaçon aléatoirement avec une limite."""
+        """Génère un fruit, un glaçon ou une bombe aléatoirement avec une limite."""
         if len(self.fruits) < 3:  
-            if random.randint(1, 100) > 95:  
+            chance = random.randint(1, 100)
+
+            if chance > 95:  # Spawn ice
                 x = random.randint(50, WIDTH - 50)
                 ice = Fruit(self.ice_image, x, 0, FRUIT_SPEED, is_ice=True)
                 self.fruits.append(ice)
 
-            elif random.randint(1, 100) > 80:
+            elif chance > 85:  # Spawn a bomb
+                x = random.randint(50, WIDTH - 50)
+                bomb = Fruit("bomb.png", x, 0, FRUIT_SPEED)
+                self.fruits.append(bomb)
+
+            elif chance > 70:  # Spawn a normal fruit
                 image = random.choice(self.fruit_images)
                 x = random.randint(50, WIDTH - 50)
                 fruit = Fruit(image, x, 0, FRUIT_SPEED)
                 self.fruits.append(fruit)
 
     def check_keypress(self, key):
-        """Vérifie si une touche a été pressée pour couper un fruit ou activer le glaçon."""
+        """Vérifie si une touche a été pressée pour couper un fruit, activer le glaçon ou exploser une bombe."""
         for fruit in self.fruits[:]:
             if fruit.letter == key and not fruit.is_cut:
+                if fruit.image_name == "bomb.png":  
+                    fruit.cut()  # Mark the bomb as cut
+                    self.fruits.remove(fruit)  # Remove it from the game
+                    self.strikes += 1  # Increment strikes
+                    if self.strikes >= 3:
+                        self.end_game()
+                    return
+                
                 if fruit.is_ice:
                     self.freeze_end_time = time.time() + self.freeze_duration
                     self.show_frozen_message = True
+
                 fruit.cut()
                 self.score += 1  
 
@@ -146,10 +165,8 @@ class Game:
             fruit.move()
             if fruit.rect.y > HEIGHT:  
                 self.fruits.remove(fruit)
-                if not fruit.is_cut and not fruit.is_ice:  
-                    self.strikes += 1  
-                    if self.strikes >= 3:
-                        self.end_game()
+                # No more penalty for missed fruits
+
 
         if not (self.freeze_end_time and time.time() < self.freeze_end_time):
             elapsed_time = time.time() - self.start_time
@@ -174,7 +191,17 @@ class Game:
             screen.blit(frozen_text, (WIDTH // 2 - 80, HEIGHT // 2 - 20))
 
     def end_game(self):
-        """Affiche un écran Game Over et quitte."""
-        print(f"Game Over! Score final: {self.score}")
-        time.sleep(3)  
-        self.running = False
+        """Affiche un écran Game Over avec le score et retourne au menu."""
+        screen = pygame.display.get_surface()
+        screen.fill((0, 0, 0))  # Clear the screen
+
+        font = pygame.font.SysFont("Arial", 48)
+        game_over_text = font.render("Game Over!", True, (255, 0, 0))
+        score_text = font.render(f"Final Score: {self.score}", True, (255, 255, 255))
+
+        screen.blit(game_over_text, (WIDTH // 2 - 100, HEIGHT // 2 - 50))
+        screen.blit(score_text, (WIDTH // 2 - 120, HEIGHT // 2 + 20))
+
+        pygame.display.flip()
+        time.sleep(3)  # Show the game over screen for 3 seconds
+        self.running = False  # Stop the game loop

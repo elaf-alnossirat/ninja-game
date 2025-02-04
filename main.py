@@ -25,6 +25,9 @@ def main():
                 pygame.display.flip()
                 clock.tick(FPS)
 
+            # After the game ends, show the score and return to the menu
+            print(f"Final Score: {game.score}")  # Optional: Print the score to the console
+
         elif choice == "exit":  # If the player chooses "Exit"
             pygame.quit()
             return  # Exit the game completely
