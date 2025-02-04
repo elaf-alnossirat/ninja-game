@@ -86,6 +86,7 @@ class Game:
         self.running = True
         self.freeze_end_time = None  
         self.show_frozen_message = False  
+        self.freeze_duration = 3  # Duration in seconds to freeze the game
 
         background_path = os.path.join("assets", "background", "background.png")
         if os.path.exists(background_path):
@@ -117,6 +118,9 @@ class Game:
         """Vérifie si une touche a été pressée pour couper un fruit ou activer le glaçon."""
         for fruit in self.fruits[:]:
             if fruit.letter == key and not fruit.is_cut:
+                if fruit.is_ice:
+                    self.freeze_end_time = time.time() + self.freeze_duration
+                    self.show_frozen_message = True
                 fruit.cut()
                 self.score += 1  
 
@@ -147,8 +151,9 @@ class Game:
                     if self.strikes >= 3:
                         self.end_game()
 
-        elapsed_time = time.time() - self.start_time
-        self.time_left = max(30 - int(elapsed_time), 0)
+        if not (self.freeze_end_time and time.time() < self.freeze_end_time):
+            elapsed_time = time.time() - self.start_time
+            self.time_left = max(30 - int(elapsed_time), 0)
 
         if self.time_left <= 0:
             self.end_game()
